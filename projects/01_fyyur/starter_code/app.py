@@ -42,6 +42,9 @@ class Venue(db.Model):
     facebook_link = db.Column(db.String(120))
     shows = db.relationship('Show', backref='venue')
 
+    def __repr__(self):
+      return '<Venue ' + str(self.id) + ' '+ str(self.name)+ '>'
+
     # TODO: (note to self: change important nullables to False)implement any missing fields, as a database migration using Flask-Migrate
 
 class Artist(db.Model):
@@ -57,6 +60,9 @@ class Artist(db.Model):
     facebook_link = db.Column(db.String(120))
     shows = db.relationship('Show', backref='artist')
 
+    def __repr__(self):
+      return '<Artist ' + str(self.id) + ' '+ str(self.name)+ '>'
+
 class Show(db.Model):
     __tablename__='Show'
 
@@ -64,6 +70,9 @@ class Show(db.Model):
     appointment = db.Column(db.DateTime, default=datetime.utcnow())
     venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'))
     artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'))
+
+    def __repr__(self):
+      return '<Show ' + str(self.id) + ' '+ str(self.appointment)+ '>'
   
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 

@@ -38,7 +38,7 @@ class Venue(db.Model):
     state = db.Column(db.String(120))
     address = db.Column(db.String(120))
     phone = db.Column(db.String(120))
-    genres = db.Column(db.String(120))
+    genres = db.Column(db.ARRAY(db.String(120)))
     image_link = db.Column(db.String(500))
     seeking_talent = db.Column(db.Boolean, default=True)
     seeking_description = db.Column(db.String(500))
@@ -59,7 +59,7 @@ class Artist(db.Model):
     city = db.Column(db.String(120))
     state = db.Column(db.String(120))
     phone = db.Column(db.String(120))
-    genres = db.Column(db.String(120))
+    genres = db.Column(db.ARRAY(db.String(120)))
     image_link = db.Column(db.String(500))
     seeking_venue = db.Column(db.Boolean, default=True)
     seeking_description = db.Column(db.String(500))
@@ -130,18 +130,26 @@ def venues():
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
+
+  search_term = request.form.get('search_term', '')
+  data=Venue.query.filter(Venue.name.ilike('%search_term%')).all()
+  results={
+    "count":len(data),
+    "data":data
+  }
+
   # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
   # seach for Hop should return "The Musical Hop".
   # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
-  response={
-    "count": 1,
-    "data": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }
-  return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
+  # response={
+  #   "count": 1,
+  #   "data": [{
+  #     "id": 2,
+  #     "name": "The Dueling Pianos Bar",
+  #     "num_upcoming_shows": 0,
+  #   }]
+  # }
+  return render_template('pages/search_venues.html', results=results, data=data, search_term=search_term)
 
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
@@ -149,9 +157,18 @@ def show_venue(venue_id):
   # TODO: replace with real venue data from the venues table, using venue_id
 
   
-    
-  data = list(filter(lambda d: d['id'] == venue_id, [data1, data2, data3]))[0]
-  return render_template('pages/show_venue.html', venue=data)
+  data = Venue.query.get(venue_id)
+  data1=[]
+  upcoming_shows= (data.shows)
+  upcoming_shows_count = len(data.shows)
+  past_shows = Show.query.filter(Show.start_time < datetime.now()).all()
+  for u in upcoming_shows:
+    data1.append({
+      'upcoming_shows_count': len(upcoming_shows),
+      'num_past_shows': len(past_shows)
+    })
+
+  return render_template('pages/show_venue.html', venue=data, data1=data1)
 
 #  Create Venue
 #  ----------------------------------------------------------------
@@ -205,12 +222,12 @@ def search_artists():
   }
   return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
 
-@app.route('/artists/<int:artist_id>')
+@app.route('/artists/<int:artist_id>', methods=['GET'])
 def show_artist(artist_id):
   # shows the venue page with the given venue_id
   # TODO: replace with real venue data from the venues table, using venue_id
   
-  data = list(filter(lambda d: d['id'] == artist_id, [data1, data2, data3]))[0]
+  data = Artist.query.get(artist_id)
   return render_template('pages/show_artist.html', artist=data)
 
 #  Update
@@ -296,7 +313,7 @@ def shows():
   # displays list of shows at /shows
   # TODO: replace with real venues data.
   #       num_shows should be aggregated based on number of upcoming shows per venue.
-  data= Show.query.all()
+  data= Show.query.order_by(Show.start_time)
   return render_template('pages/shows.html', shows=data)
 
 @app.route('/shows/create')

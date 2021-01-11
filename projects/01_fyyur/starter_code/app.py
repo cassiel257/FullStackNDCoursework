@@ -206,10 +206,10 @@ def create_venue_submission():
   # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
   return redirect(url_for('venues'))
 
-@app.route('/venues/<venue_id>', methods=['DELETE'])
+@app.route('/venues/<venue_id>/delete', methods=['GET','POST'])
 def delete_venue(venue_id):
-  delete_me=Venue.query.filter_by(id=venue_id)
-  db.session.delete(delete_me)
+  d=Venue.query.filter_by(id=venue_id).first()
+  db.session.delete(d)
   db.session.commit()
 
   flash('Venue deleted!')

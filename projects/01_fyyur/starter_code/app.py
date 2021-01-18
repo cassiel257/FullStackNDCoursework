@@ -33,7 +33,7 @@ class Venue(db.Model):
     __tablename__ = 'Venue'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
+    name = db.Column(db.String, nullable=False, unique=True)
     city = db.Column(db.String(120), nullable=False)
     state = db.Column(db.String(120), nullable=False)
     address = db.Column(db.String(120))
@@ -61,7 +61,7 @@ class Artist(db.Model):
     __tablename__ = 'Artist'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
+    name = db.Column(db.String, nullable=False, unique=True)
     city = db.Column(db.String(120), nullable=False)
     state = db.Column(db.String(120), nullable=False)
     phone = db.Column(db.String(120))
@@ -225,9 +225,19 @@ def create_venue_submission():
   website=request.form.get('website','')
   seeking_talent=request.form.get('seeking_talent')
   seeking_description=request.form.get('seeking_description','')
-  if 'seeking_talent' not in request.form:
-    seeking_talent = False
-  venue=Venue(name=name, city=city, state=state, address=address, phone=phone, image_link=image_link, genres=genres, facebook_link=facebook_link,website=website,seeking_description=seeking_description)
+  
+  #if 'seeking_talent' not in request.form:
+  #  seeking_talent = False
+  
+  #else:
+   # seeking_talent = True
+  
+  if seeking_talent=='True':
+    seeking_talent=True
+  else:
+    seeking_talent=False
+
+  venue=Venue(name=name, city=city, state=state, address=address, phone=phone, image_link=image_link, genres=genres, facebook_link=facebook_link,website=website,seeking_description=seeking_description,seeking_talent=seeking_talent)
   try:
     db.session.add(venue)
     db.session.commit()
@@ -307,7 +317,36 @@ def show_artist(artist_id):
   # shows the venue page with the given venue_id
   # TODO: replace with real venue data from the venues table, using venue_id
   
-  data = Artist.query.get(artist_id)
+  artist = Artist.query.filter_by(id=artist_id).first_or_404()
+
+  past_shows = db.session.query(Venue, Show).join(Show).join(Artist).filter(Show.artist_id == artist_id,Show.venue_id == Venue.id,Show.start_time < datetime.now()).all()
+  upcoming_shows = db.session.query(Venue, Show).join(Show).join(Artist).filter(Show.artist_id == artist_id,Show.venue_id == Venue.id,Show.start_time > datetime.now()).all()
+
+  data= {'id': artist_id,
+    'name': artist.name,
+    'city': artist.city,
+    'state': artist.state,
+    'phone': artist.phone,
+    'image_link': artist.image_link,
+    'facebook_link': artist.facebook_link,
+    'website': artist.website,
+    'genres': artist.genres,
+    'seeking_venue': artist.seeking_venue,
+    'seeking_description': artist.seeking_description,
+    'upcoming_shows': [{
+      'venue_id': venue.id,
+      'venue_name': venue.name,
+      'venue_image_link': venue.image_link,
+      'start_time': show.start_time
+        } for venue, show in upcoming_shows], 
+    'past_shows': [{
+      'venue_id': venue.id,
+      "venue_name": venue.name,
+      "venue_image_link": venue.image_link,
+      "start_time": show.start_time
+      } for venue, show in past_shows],  
+    'upcoming_shows_count': len(upcoming_shows),
+    'past_shows_count': len(past_shows)}
   return render_template('pages/show_artist.html', artist=data)
 
 #  Update
@@ -344,8 +383,12 @@ def edit_artist_submission(artist_id):
   artist.website=request.form.get('website','')
   artist.seeking_venue=request.form.get('seeking_venue')
   artist.seeking_description=request.form.get('seeking_description','')
-  if 'seeking_venue' not in request.form:
-    seeking_venue = False
+  
+  if artist.seeking_venue=='True':
+    artist.seeking_venue=True
+  else:
+    artist.seeking_venue=False
+
   db.session.commit()
 
   # TODO: take values from the form submitted, and update existing
@@ -386,8 +429,13 @@ def edit_venue_submission(venue_id):
   venue.website=request.form.get('website','')
   venue.seeking_talent=request.form.get('seeking_talent')
   venue.seeking_description=request.form.get('seeking_description','')
-  if 'seeking_talent' not in request.form:
-    seeking_talent = False
+  
+  if venue.seeking_talent=='True':
+    venue.seeking_talent=True
+  else:
+    venue.seeking_talent=False
+
+  
   #venue=Venue(name=name, city=city, state=state, address=address, phone=phone, image_link=image_link, genres=genres, facebook_link=facebook_link,website=website,seeking_description=seeking_description)
   db.session.commit()
   # TODO: take values from the form submitted, and update existing
@@ -413,7 +461,13 @@ def create_artist_submission():
   genres=request.form.getlist('genres')
   facebook_link=request.form.get('facebook_link','')
   website=request.form.get('website','')
+  seeking_venue=request.form.get('seeking_venue')
   seeking_description=request.form.get('seeking_description','')
+
+  if seeking_venue=='True':
+    seeking_venue=True
+  else:
+    seeking_venue=False
   artist=Artist(name=name, city=city, state=state, phone=phone, image_link=image_link, genres=genres, facebook_link=facebook_link,website=website,seeking_description=seeking_description)
   try:
     db.session.add(artist)
@@ -436,6 +490,32 @@ def create_artist_submission():
     return render_template('/errors/500.html')
   else:
       return redirect(url_for('artists'))
+
+@app.route('/artists/<artist_id>/delete', methods=['GET','POST'])
+def delete_artist(artist_id):
+  error=False
+  try:
+    d=Artist.query.filter_by(id=artist_id).first()
+    db.session.delete(d)
+    db.session.commit()
+    flash('Artist deleted successfully!')
+  except:
+    flash('An error occurred. The artist could not be deleted.')
+    error=True
+    db.session.rollback()
+  # TODO: Complete this endpoint for taking a venue_id, and using
+  # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
+  finally:
+    db.session.close()
+  if error:
+    return render_template('/errors/500.html')
+    
+  # BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
+  # clicking that button delete it from the db then redirect the user to the homepage
+  
+  else:
+    return redirect(url_for('index'))
+
 
 
 #  Shows

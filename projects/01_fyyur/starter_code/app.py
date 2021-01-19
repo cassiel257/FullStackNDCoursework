@@ -12,84 +12,20 @@ import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
+from models import app, db, Venue, Artist, Show
 from flask_migrate import Migrate
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
 
-app = Flask(__name__)
+
 moment = Moment(app)
 app.config.from_object('config')
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+db.init_app(app)
+#migrate = Migrate(app, db)
 
 # TODO: (Done in config file) connect to a local postgresql database
 
-#----------------------------------------------------------------------------#
-# Models.
-#----------------------------------------------------------------------------#
-
-class Venue(db.Model):
-    __tablename__ = 'Venue'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False, unique=True)
-    city = db.Column(db.String(120), nullable=False)
-    state = db.Column(db.String(120), nullable=False)
-    address = db.Column(db.String(120))
-    phone = db.Column(db.String(120))
-    genres = db.Column(db.ARRAY(db.String(120)))
-    image_link = db.Column(db.String(500))
-    seeking_talent = db.Column(db.Boolean, default=True)
-    seeking_description = db.Column(db.String(500))
-    website = db.Column(db.String(120))
-    facebook_link = db.Column(db.String(120))
-    shows = db.relationship('Show', backref='venue')
-
-    def __repr__(self):
-      return '<Venue ' + str(self.id) + ' '+ str(self.name)+ '>'
-    @property
-    def search(self):
-      return{
-        'id':self.id,
-        'name':self.name
-      }
-
-    # TODO:implement any missing fields, as a database migration using Flask-Migrate
-
-class Artist(db.Model):
-    __tablename__ = 'Artist'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False, unique=True)
-    city = db.Column(db.String(120), nullable=False)
-    state = db.Column(db.String(120), nullable=False)
-    phone = db.Column(db.String(120))
-    genres = db.Column(db.ARRAY(db.String(120)))
-    image_link = db.Column(db.String(500))
-    seeking_venue = db.Column(db.Boolean, default=True)
-    seeking_description = db.Column(db.String(500))
-    website = db.Column(db.String(120))
-    facebook_link = db.Column(db.String(120))
-    shows = db.relationship('Show', backref='artist')
-
-    def __repr__(self):
-      return '<Artist ' + str(self.id) + ' '+ str(self.name)+ '>'
-
-class Show(db.Model):
-    __tablename__='Show'
-
-    id = db.Column(db.Integer, primary_key=True)
-    start_time = db.Column(db.DateTime, default=datetime.utcnow())
-    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'))
-    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'))
-
-    def __repr__(self):
-      return '<Show ' + str(self.id) + ' '+ str(self.start_time)+ '>'
-  
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
-
-# TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
 
 #----------------------------------------------------------------------------#
 # Filters.
@@ -563,6 +499,27 @@ def create_show_submission():
     return render_template('/errors/500.html')
   else:
     return redirect(url_for('shows'))
+
+@app.route('/shows/<show_id>/delete', methods=['GET','POST'])
+def delete_show(show_id):
+  error=False
+  try:
+    d=Show.query.filter_by(id=show_id).first()
+    db.session.delete(d)
+    db.session.commit()
+    flash('Show deleted successfully!')
+  except:
+    flash('An error occurred. The show could not be deleted.')
+    error=True
+    db.session.rollback()
+  # TODO: Complete this endpoint for taking a venue_id, and using
+  # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
+  finally:
+    db.session.close()
+  if error:
+    return render_template('/errors/500.html')
+  else:
+    return redirect(url_for('index'))
 
 @app.errorhandler(404)
 def not_found_error(error):

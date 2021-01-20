@@ -149,6 +149,7 @@ def create_venue_form():
 
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
+  form = VenueForm(request.form)
   error=False
   name=request.form.get('name', '')
   city=request.form.get('city', '')
@@ -161,25 +162,18 @@ def create_venue_submission():
   website=request.form.get('website','')
   seeking_talent=request.form.get('seeking_talent')
   seeking_description=request.form.get('seeking_description','')
-  
-  #if 'seeking_talent' not in request.form:
-  #  seeking_talent = False
-  
-  #else:
-   # seeking_talent = True
-  
-  if seeking_talent=='True':
+  if seeking_talent=='Yes':
     seeking_talent=True
   else:
     seeking_talent=False
-
-  venue=Venue(name=name, city=city, state=state, address=address, phone=phone, image_link=image_link, genres=genres, facebook_link=facebook_link,website=website,seeking_description=seeking_description,seeking_talent=seeking_talent)
+  
   try:
+    venue=Venue(name=name, city=city, state=state, address=address, phone=phone, image_link=image_link, genres=genres, facebook_link=facebook_link,website=website,seeking_description=seeking_description)  
     db.session.add(venue)
     db.session.commit()
     flash('Venue ' + request.form['name'] + ' was successfully listed!')
-  except:
-    error=True
+  except ValueError as e:
+    print(e)
     db.session.rollback()
     flash('An error occured. Venue could not be listed.')
   finally:
@@ -205,7 +199,7 @@ def delete_venue(venue_id):
     db.session.delete(d)
     db.session.commit()
     flash('Venue deleted successfully!')
-  except:
+  except Exception:
     flash('An error occurred. The venue could not be deleted.')
     error=True
     db.session.rollback()
@@ -320,10 +314,10 @@ def edit_artist_submission(artist_id):
   artist.seeking_venue=request.form.get('seeking_venue')
   artist.seeking_description=request.form.get('seeking_description','')
   
-  if artist.seeking_venue=='True':
-    artist.seeking_venue=True
-  else:
+  if artist.seeking_venue=='No':
     artist.seeking_venue=False
+  else:
+    artist.seeking_venue=True
 
   db.session.commit()
 
@@ -352,7 +346,7 @@ def edit_venue(venue_id):
 
 @app.route('/venues/<int:venue_id>/edit', methods=['POST'])
 def edit_venue_submission(venue_id):
-  form=VenueForm()
+  form=VenueForm(request.form)
   venue=Venue.query.get(venue_id)
   venue.name=request.form.get('name', '')
   venue.city=request.form.get('city', '')
@@ -366,10 +360,10 @@ def edit_venue_submission(venue_id):
   venue.seeking_talent=request.form.get('seeking_talent')
   venue.seeking_description=request.form.get('seeking_description','')
   
-  if venue.seeking_talent=='True':
-    venue.seeking_talent=True
-  else:
+  if venue.seeking_talent=='No':
     venue.seeking_talent=False
+  else:
+    venue.seeking_talent=True
 
   
   #venue=Venue(name=name, city=city, state=state, address=address, phone=phone, image_link=image_link, genres=genres, facebook_link=facebook_link,website=website,seeking_description=seeking_description)
@@ -388,6 +382,7 @@ def create_artist_form():
 
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
+  form = ArtistForm(request.form)
   error=False
   name=request.form.get('name', '')
   city=request.form.get('city', '')
@@ -400,12 +395,13 @@ def create_artist_submission():
   seeking_venue=request.form.get('seeking_venue')
   seeking_description=request.form.get('seeking_description','')
 
-  if seeking_venue=='True':
+  if seeking_venue=='Yes':
     seeking_venue=True
   else:
     seeking_venue=False
-  artist=Artist(name=name, city=city, state=state, phone=phone, image_link=image_link, genres=genres, facebook_link=facebook_link,website=website,seeking_description=seeking_description)
+  
   try:
+    artist=Artist(name=name, city=city, state=state, phone=phone, image_link=image_link, genres=genres, facebook_link=facebook_link,website=website,seeking_description=seeking_description)
     db.session.add(artist)
     db.session.commit()
   # called upon submitting the new artist listing form
@@ -414,9 +410,9 @@ def create_artist_submission():
 
   # on successful db insert, flash success
     flash('Artist ' + request.form['name'] + ' was successfully listed!')
-  except:
+  except ValueError as e:
+    print(e)
     flash('An error occurred. The artist could not be listed.')
-    error=True
     db.session.rollback()
   finally:
     db.session.close()
@@ -435,7 +431,7 @@ def delete_artist(artist_id):
     db.session.delete(d)
     db.session.commit()
     flash('Artist deleted successfully!')
-  except:
+  except Exception:
     flash('An error occurred. The artist could not be deleted.')
     error=True
     db.session.rollback()
@@ -486,7 +482,7 @@ def create_show_submission():
 
   # on successful db insert, flash success
     flash('Show was successfully listed!')
-  except:
+  except Exception:
     error=True
     db.session.rollback()
     flash('An error occurred. Show could not be listed.')
@@ -508,7 +504,7 @@ def delete_show(show_id):
     db.session.delete(d)
     db.session.commit()
     flash('Show deleted successfully!')
-  except:
+  except Exception:
     flash('An error occurred. The show could not be deleted.')
     error=True
     db.session.rollback()
@@ -528,6 +524,16 @@ def not_found_error(error):
 @app.errorhandler(500)
 def server_error(error):
     return render_template('errors/500.html'), 500
+
+@app.errorhandler(400)
+def bad_request(error):
+    return render_template('errors/400.html'), 400
+
+@app.errorhandler(409)
+def duplicate_resource(error):
+    return render_template('errors/409.html'), 409
+
+
 
 
 if not app.debug:

@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { Component } from 'react';
 import '../stylesheets/Question.css';
 
@@ -19,9 +20,9 @@ class Question extends Component {
       <div className="Question-holder">
         <div className="Question">{question}</div>
         <div className="Question-status">
-          <img className="category" src={`${category}.svg`}/>
+          <img className="category" alt="category image" src={`${category}.svg`}/>
           <div className="difficulty">Difficulty: {difficulty}</div>
-          <img src="delete.png" className="delete" onClick={() => this.props.questionAction('DELETE')}/>
+          <img src="delete.png" alt="delete image" className="delete" onClick={() => this.props.questionAction('DELETE')}/>
           
         </div>
         <div className="show-answer button"

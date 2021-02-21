@@ -108,13 +108,13 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(data['success'], True)
 
-    # def test_create_question_empty_500(self):
-    #     res = self.client().post('/questions')
-    #     print('debugging create question empty: '+str(res))
-    #     data = json.loads(res.data.decode('utf-8'))
-    #     self.assertEqual(res.status_code, 500)
-    #     self.assertEqual(data['success'], False)
-    #     self.assertEqual(data['message'], 'There was a problem with the server. Please try again later.')
+    def test_create_question_empty_422(self):
+        res = self.client().post('/questions')
+        print('debugging create question empty: '+str(res))
+        data = json.loads(res.data.decode('utf-8'))
+        self.assertEqual(res.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], 'Unprocessable. This request was formatted well, but may have semantic errors.')
     
 
     def test_create_question_not_allowed_405(self):

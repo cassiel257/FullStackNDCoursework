@@ -89,7 +89,7 @@ def create_app(test_config=None):
         question.delete()
         selection=Question.query.all()
         current_questions=paginate_questions(request, selection)
-        return jsonify({"success": True, "questions":current_questions, "total questions":len(Question.query.all())})
+        return jsonify({"success": True, "questions":current_questions, "deleted":question_id, "total questions":len(Question.query.all())})
 
     except Exception as e:
       print(e)
@@ -108,23 +108,27 @@ def create_app(test_config=None):
   @app.route('/questions', methods=['POST'])
   def create_question():
     body = request.get_json()
-    answer=body.get('answer', None)
-    question=body.get('question', None)
-    category=body.get('category', None)
-    difficulty=body.get('difficulty', None)
-
     try:
-      if question is None:
+      answer=body.get('answer', None)
+      question=body.get('question', None)
+      category=body.get('category', None)
+      difficulty=body.get('difficulty', None)
+
+      try:
+        if question is None:
+          abort(422)
+        else:
+          question=Question(answer=answer, question=question, category=category, difficulty=difficulty)
+          question.insert()
+          selection=Question.query.all()
+          current_questions=paginate_questions(request, selection)
+          return jsonify({'success':True, 'created': question.id, 'questions':current_questions, 'total_questions':len(Question.query.all())})
+      except Exception as e:
+        #print("Exception is ", e)
         abort(422)
-      else:
-        question=Question(answer=answer, question=question, category=category, difficulty=difficulty)
-        question.insert()
-        selection=Question.query.all()
-        current_questions=paginate_questions(request, selection)
-        return jsonify({'success':True, 'created': question.id, 'questions':current_questions, 'total_questions':len(Question.query.all())})
     except Exception as e:
-      #print("Exception is ", e)
-      abort(500)
+      abort(422)
+
   '''
   @TODO: 
   Create a POST endpoint to get questions based on a search term. 

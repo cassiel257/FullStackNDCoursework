@@ -7,9 +7,9 @@ from urllib.request import urlopen
 
 app = Flask(__name__)
 
-AUTH0_DOMAIN = @TODO_REPLACE_WITH_YOUR_DOMAIN
+AUTH0_DOMAIN = 'sparkle-coffee.us.auth0.com'
 ALGORITHMS = ['RS256']
-API_AUDIENCE = @TODO_REPLACE_WITH_YOUR_API_AUDIENCE
+API_AUDIENCE = 'coffee'
 
 
 class AuthError(Exception):
@@ -52,10 +52,11 @@ def get_token_auth_header():
 
 
 def verify_decode_jwt(token):
-    jsonurl = urlopen(f'https://{AUTH0_DOMAIN}/.well-known/jwks.json')
-    jwks = json.loads(jsonurl.read())
+    myurl = 'https://%s/.well-known/jwks.json' % (AUTH0_DOMAIN) 
+    jsonurl = urlopen(myurl)
+    content = jsonurl.read().decode(jsonurl.headers.get_content_charset())
+    jwks = json.loads(content)
     unverified_header = jwt.get_unverified_header(token)
-    rsa_key = {}
     if 'kid' not in unverified_header:
         raise AuthError({
             'code': 'invalid_header',

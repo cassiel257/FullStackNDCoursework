@@ -43,7 +43,7 @@ def headers(payload):
 @app.route('/drinks')
 def get_drinks():
     drinks=[drink.short() for drink in Drink.query.all()]
-    if len(drinks) == 0:
+    if drinks is None:
       abort(404)
     else:
       return jsonify({"success": True, "drinks":drinks}), 200
@@ -60,7 +60,7 @@ def get_drinks():
 @requires_auth("get:drinks-detail")
 def get_drinks_detail(payload):
     drinks=[drink.long() for drink in Drink.query.all()]
-    if len(drinks) == 0:
+    if drinks is None:
       abort(404)
     else:
       return jsonify({"success": True, "drinks":drinks}), 200
@@ -82,9 +82,9 @@ def create_drinks(payload):
     try:
       title=body.get('title', None)
       recipe=body.get('recipe', None)
-      drink=Drink(title=title, recipe=recipe)
+      drink=Drink(title=title, recipe=json.dumps(recipe))
       drink.insert()
-      return jsonify({'success':True, 'drinks': drink.id}), 200
+      return jsonify({'success':True, 'drinks': drink.long()}), 200
     except Exception as e:
         #print("Exception is ", e)
         abort(422)
@@ -104,20 +104,20 @@ def create_drinks(payload):
 @requires_auth("patch:drinks")
 def edit_drinks(payload, id):
     body = request.get_json()
+    title=body.get('title', None)
+    recipe=body.get('recipe', None)
     try:
-      title=body.get('title', None)
-      recipe=body.get('recipe', None)
-      try:
         drink = Drink.query.filter(Drink.id == id).one_or_none()
-        drink.title = 'title'
+        if drink is None:
+            abort(404)
+        drink.title = title
+        drink.recipe = json.dumps(recipe)
         drink.update()
-          
-        return jsonify({'success':True, 'drinks': drink.id}), 200
-      except Exception as e:
+        drink=list(drink.long())
+        return jsonify({'success':True, 'drinks':drink}), 200
+    except Exception as e:
         #print("Exception is ", e)
         abort(422)
-    except Exception as e:
-      abort(422)
 
 '''
 @TODO implement endpoint
@@ -132,17 +132,12 @@ def edit_drinks(payload, id):
 @app.route('/drinks/<id>', methods=['DELETE'])
 @requires_auth("delete:drinks")
 def delete_drinks(payload, id):
-    body = request.get_json()
     try:
-      title=body.get('title', None)
-      recipe=body.get('recipe', None)
-      try:
-          drink=Drink(title=title, recipe=recipe)
-          drink.delete()
-          return jsonify({'success':True, 'delete': drink.id}), 200
-      except Exception as e:
-        #print("Exception is ", e)
-        abort(422)
+        drink=Drink.query.filter(Drink.id == id).one_or_none()
+        if drink is None:
+            abort(404)
+        drink.delete()
+        return jsonify({'success':True, 'delete': drink.id}), 200
     except Exception as e:
       abort(422)
 
